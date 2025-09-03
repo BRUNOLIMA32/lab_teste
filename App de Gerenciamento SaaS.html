@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SaaS Unificado - Obras</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- jsPDF para gerar PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+  <!-- Spinner -->
+  <div id="loading-spinner" class="absolute inset-0 flex items-center justify-center bg-gray-200 bg-opacity-75 z-50 hidden">
+    <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-gray-900"></div>
+  </div>
+
+  <div id="app-container" class="bg-white rounded-lg shadow-xl p-8 max-w-5xl w-full mx-auto my-8">
+
+    <!-- Navbar -->
+    <nav id="navbar" class="hidden">
+      <div class="flex flex-wrap items-center justify-between p-4 bg-gray-50 rounded-lg shadow-sm mb-6">
+        <h1 class="text-2xl font-bold">Meu SaaS</h1>
+        <div class="flex flex-wrap gap-2">
+          <button class="nav-button bg-indigo-500 text-white py-2 px-4 rounded" data-page="home">Home</button>
+          <button class="nav-button bg-indigo-500 text-white py-2 px-4 rounded" data-page="products">Produtos</button>
+          <button class="nav-button bg-indigo-500 text-white py-2 px-4 rounded" data-page="customers">Clientes</button>
+          <button class="nav-button bg-indigo-500 text-white py-2 px-4 rounded" data-page="timesheet">Ponto</button>
+          <button class="nav-button bg-indigo-500 text-white py-2 px-4 rounded" data-page="obras">Obras</button>
+          <button id="logout-button" class="bg-red-500 text-white py-2 px-4 rounded">Sair</button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Login -->
+    <div id="login-page" class="page">
+      <h2 class="text-2xl font-bold mb-4">Login</h2>
+      <form id="login-form" class="space-y-4">
+        <input id="login-email" type="email" placeholder="Email" required class="w-full p-2 border rounded" />
+        <input id="login-password" type="password" placeholder="Senha" required class="w-full p-2 border rounded" />
+        <button type="submit" class="bg-indigo-500 text-white w-full py-2 rounded">Entrar</button>
+      </form>
+      <p class="text-sm mt-4">Não tem conta? 
+        <a href="#" id="go-to-signup" class="text-indigo-600 underline">Cadastre-se</a>
+      </p>
+      <p id="login-status" class="text-red-500 text-sm mt-2"></p>
+    </div>
+
+    <!-- Cadastro -->
+    <div id="signup-page" class="page hidden">
+      <h2 class="text-2xl font-bold mb-4">Cadastro</h2>
+      <form id="signup-form" class="space-y-4">
+        <input id="signup-email" type="email" placeholder="Email" required class="w-full p-2 border rounded" />
+        <input id="signup-password" type="password" placeholder="Senha" required class="w-full p-2 border rounded" />
+        <button type="submit" class="bg-green-500 text-white w-full py-2 rounded">Criar Conta</button>
+      </form>
+      <p class="text-sm mt-4">Já tem conta?
+        <a href="#" id="go-to-login" class="text-indigo-600 underline">Login</a>
+      </p>
+      <p id="signup-status" class="text-red-500 text-sm mt-2"></p>
+    </div>
+
+    <!-- Home -->
+    <div id="home-page" class="page hidden">
+      <h2 class="text-2xl font-bold mb-4">Bem-vindo ao Dashboard</h2>
+      <p>Use a navegação acima para acessar as funcionalidades.</p>
+    </div>
+
+    <!-- Produtos -->
+    <div id="products-page" class="page hidden">
+      <h2 class="text-xl font-bold mb-4">Produtos</h2>
+      <form id="product-form" class="space-y-2 mb-4">
+        <input id="product-name" type="text" placeholder="Nome" required class="w-full p-2 border rounded" />
+        <input id="product-quantity" type="number" placeholder="Quantidade" required class="w-full p-2 border rounded" />
+        <button type="submit" class="bg-indigo-500 text-white w-full py-2 rounded">Adicionar Produto</button>
+      </form>
+      <table class="w-full border">
+        <thead><tr><th>Nome</th><th>Qtd</th><th>Ações</th></tr></thead>
+        <tbody id="products-table"></tbody>
+      </table>
+    </div>
+
+    <!-- Clientes -->
+    <div id="customers-page" class="page hidden">
+      <h2 class="text-xl font-bold mb-4">Clientes</h2>
+      <form id="customer-form" class="space-y-2 mb-4">
+        <input id="customer-name" type="text" placeholder="Nome" required class="w-full p-2 border rounded" />
+        <input id="customer-contact" type="text" placeholder="Contato" required class="w-full p-2 border rounded" />
+        <button type="submit" class="bg-indigo-500 text-white w-full py-2 rounded">Adicionar Cliente</button>
+      </form>
+      <table class="w-full border">
+        <thead><tr><th>Nome</th><th>Contato</th><th>Ações</th></tr></thead>
+        <tbody id="customers-table"></tbody>
+      </table>
+    </div>
+
+    <!-- Ponto -->
+    <div id="timesheet-page" class="page hidden">
+      <h2 class="text-xl font-bold mb-4">Controle de Ponto</h2>
+      <button id="punch-button" class="bg-green-500 text-white py-2 px-4 rounded mb-4">Bater Ponto</button>
+      <table class="w-full border">
+        <thead><tr><th>Data</th><th>Tipo</th></tr></thead>
+        <tbody id="timesheet-table"></tbody>
+      </table>
+    </div>
+
+    <!-- Obras -->
+    <div id="obras-page" class="page hidden">
+      <h2 class="text-xl font-bold mb-4">Obras</h2>
+      <form id="obra-form" class="space-y-2 mb-4">
+        <input id="obra-nome" type="text" placeholder="Nome da Obra" required class="w-full p-2 border rounded" />
+        <input id="obra-endereco" type="text" placeholder="Endereço" required class="w-full p-2 border rounded" />
+        <input id="obra-cliente" type="text" placeholder="Cliente Responsável" required class="w-full p-2 border rounded" />
+        <input id="obra-inicio" type="date" required class="w-full p-2 border rounded" />
+        <input id="obra-fim" type="date" class="w-full p-2 border rounded" />
+        <button type="submit" class="bg-indigo-500 text-white w-full py-2 rounded">Cadastrar Obra</button>
+      </form>
+      <div id="obras-list"></div>
+    </div>
+
+  </div>
+
+  <!-- Firebase + Lógica -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } 
+      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, deleteDoc, onSnapshot, doc, Timestamp, updateDoc, getDoc } 
+      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+      // Adicionar estes event listeners dentro do <script type="module">
+document.getElementById("go-to-signup").addEventListener("click", (e) => {
+    e.preventDefault();
+    showPage("signup");
+});
+
+document.getElementById("go-to-login").addEventListener("click", (e) => {
+    e.preventDefault();
+    showPage("login");
+});
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBCcGhd5a2_48eVKcuJV90LDcPeQuCfyyM",
+      authDomain: "appteste-92512.firebaseapp.com",
+      projectId: "appteste-92512",
+      storageBucket: "appteste-92512.appspot.com",
+      messagingSenderId: "691816959257",
+      appId: "1:691816959257:web:2dcc1aa045e6235d470988",
+      measurementId: "G-PRX9HC0GWF"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    function showPage(id) {
+      document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+      document.getElementById(id + "-page").classList.remove('hidden');
+    }
+
+    // Auth state
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        document.getElementById("navbar").classList.remove("hidden");
+        showPage("home");
+        loadProducts(user.uid);
+        loadCustomers(user.uid);
+        loadTimesheet(user.uid);
+        loadObras(user.uid);
+      } else {
+        document.getElementById("navbar").classList.add("hidden");
+        showPage("login");
+      }
+    });
+
+    // Login
+    // Alterar o código do formulário de login
+document.getElementById("login-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const loginEmail = document.getElementById("login-email").value;
+    const loginPassword = document.getElementById("login-password").value;
+    const loginStatus = document.getElementById("login-status");
+
+    try {
+        await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+        loginStatus.textContent = ""; // Limpa a mensagem de erro em caso de sucesso
+    } catch (err) {
+        loginStatus.textContent = "Erro: " + err.message; // Exibe a mensagem de erro
+    }
+});
+
+    // Cadastro
+    // Alterar o código do formulário de cadastro
+document.getElementById("signup-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const signupEmail = document.getElementById("signup-email").value;
+    const signupPassword = document.getElementById("signup-password").value;
+    const signupStatus = document.getElementById("signup-status");
+    
+    try {
+        await createUserWithEmailAndPassword(auth, signupEmail, signupPassword);
+        signupStatus.textContent = ""; // Limpa a mensagem de erro em caso de sucesso
+    } catch (err) {
+        signupStatus.textContent = "Erro: " + err.message; // Exibe a mensagem de erro
+    }
+});
+
+    document.getElementById("logout-button").addEventListener("click", () => signOut(auth));
+    document.querySelectorAll(".nav-button").forEach(btn => {
+      btn.addEventListener("click", () => showPage(btn.dataset.page));
+    });
+
+    // ---------------- Produtos ----------------
+    async function loadProducts(uid) {
+      const col = collection(db, "users", uid, "products");
+      onSnapshot(col, (snap) => {
+        const tbody = document.getElementById("products-table");
+        tbody.innerHTML = "";
+        snap.forEach(docSnap => {
+          const p = docSnap.data();
+          tbody.innerHTML += `<tr><td>${p.name}</td><td>${p.quantity}</td>
+            <td><button onclick="deleteDoc(doc(db,'users','${uid}','products','${docSnap.id}'))" class="text-red-600">Excluir</button></td></tr>`;
+        });
+      });
+    }
+
+    product-form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const uid = auth.currentUser.uid;
+      await addDoc(collection(db, "users", uid, "products"), {
+        name: product-name.value,
+        quantity: parseInt(product-quantity.value)
+      });
+      e.target.reset();
+    });
+
+    // ---------------- Clientes ----------------
+    async function loadCustomers(uid) {
+      const col = collection(db, "users", uid, "customers");
+      onSnapshot(col, (snap) => {
+        const tbody = document.getElementById("customers-table");
+        tbody.innerHTML = "";
+        snap.forEach(docSnap => {
+          const c = docSnap.data();
+          tbody.innerHTML += `<tr><td>${c.name}</td><td>${c.contact}</td>
+            <td><button onclick="deleteDoc(doc(db,'users','${uid}','customers','${docSnap.id}'))" class="text-red-600">Excluir</button></td></tr>`;
+        });
+      });
+    }
+
+    customer-form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const uid = auth.currentUser.uid;
+      await addDoc(collection(db, "users", uid, "customers"), {
+        name: customer-name.value,
+        contact: customer-contact.value
+      });
+      e.target.reset();
+    });
+
+    // ---------------- Ponto ----------------
+    async function loadTimesheet(uid) {
+      const col = collection(db, "users", uid, "timesheet");
+      onSnapshot(col, (snap) => {
+        const tbody = document.getElementById("timesheet-table");
+        tbody.innerHTML = "";
+        snap.forEach(docSnap => {
+          const t = docSnap.data();
+          const d = t.timestamp?.toDate().toLocaleString("pt-BR");
+          tbody.innerHTML += `<tr><td>${d}</td><td>${t.type}</td></tr>`;
+        });
+      });
+    }
+
+    punch-button.addEventListener("click", async () => {
+      const uid = auth.currentUser.uid;
+      await addDoc(collection(db, "users", uid, "timesheet"), {
+        timestamp: Timestamp.now(),
+        type: "Entrada/Saída"
+      });
+    });
+
+    // ---------------- Obras ----------------
+    async function loadObras(uid) {
+      const col = collection(db, "users", uid, "obras");
+      onSnapshot(col, (snap) => {
+        const div = document.getElementById("obras-list");
+        div.innerHTML = "";
+        snap.forEach(docSnap => {
+          const o = docSnap.data();
+          div.innerHTML += `
+            <div class="border p-4 mb-4 rounded">
+              <h3 class="font-bold">${o.nome}</h3>
+              <p>Cliente: ${o.cliente}</p>
+              <p>Endereço: ${o.endereco}</p>
+              <p>Início: ${o.inicio} - Fim: ${o.fim}</p>
+              <button onclick="gerarCautela('${uid}','${docSnap.id}','${o.nome}','${o.cliente}')" class="bg-gray-500 text-white px-2 py-1 mt-2 rounded">Gerar Cautela</button>
+            </div>`;
+        });
+      });
+    }
+
+    obra-form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const uid = auth.currentUser.uid;
+      await addDoc(collection(db, "users", uid, "obras"), {
+        nome: obra-nome.value,
+        endereco: obra-endereco.value,
+        cliente: obra-cliente.value,
+        inicio: obra-inicio.value,
+        fim: obra-fim.value
+      });
+      e.target.reset();
+    });
+
+    // ---------------- PDF Cautela ----------------
+    async function gerarCautela(uid, obraId, nomeObra, cliente) {
+      const { jsPDF } = window.jspdf;
+      const docPDF = new jsPDF();
+
+      docPDF.text(`Cautela de Materiais`, 10, 10);
+      docPDF.text(`Obra: ${nomeObra}`, 10, 20);
+      docPDF.text(`Cliente Responsável: ${cliente}`, 10, 30);
+
+      const materiais = await getDocs(collection(db, "users", uid, "obras", obraId, "materiais"));
+      let y = 50;
+      docPDF.text("Materiais Usados:", 10, 40);
+      materiais.forEach(m => {
+        const d = m.data();
+        docPDF.text(`${d.nome} - ${d.quantidade}`, 10, y);
+        y += 10;
+      });
+
+      docPDF.text("_____________________", 10, y + 20);
+      docPDF.text("Assinatura do Responsável", 10, y + 30);
+
+      docPDF.save(`cautela_${nomeObra}.pdf`);
+    }
+  </script>
+</body>
+</html>

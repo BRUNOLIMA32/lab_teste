@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Tarefas Colaborativa</title>
+    <style>
+        /* Estilos CSS para o layout e aparência da lista de verificação. */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: #333;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+        h1 {
+            color: #4a4a4a;
+            margin-bottom: 20px;
+        }
+        .mode-toggle {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .mode-toggle button {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .mode-toggle button:first-child {
+            border-radius: 8px 0 0 8px;
+        }
+        .mode-toggle button:last-child {
+            border-radius: 0 8px 8px 0;
+        }
+        .mode-toggle button.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .input-area {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        #taskInput, #listIdInput {
+            flex-grow: 1;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        #taskInput:focus, #listIdInput:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        #addButton, #loadButton {
+            padding: 12px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        #addButton:hover, #loadButton:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+        #taskList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            text-align: left;
+        }
+        .task-item {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            transition: background-color 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+        .task-item:hover {
+            background-color: #f2f2f2;
+        }
+        .task-item.finalizada {
+            background-color: #d4edda;
+            text-decoration: line-through;
+            color: #888;
+        }
+        .task-content-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        .task-text {
+            flex-grow: 1;
+            word-break: break-word;
+        }
+        .task-info {
+            font-size: 0.8em;
+            color: #a0a0a0;
+            margin-top: 5px;
+        }
+        .task-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .delete-btn, .comment-btn, .status-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: color 0.3s;
+        }
+        .delete-btn {
+            color: #ff4d4d;
+        }
+        .delete-btn:hover {
+            color: #d90000;
+        }
+        .comment-btn {
+            color: #777;
+        }
+        .comment-btn:hover {
+            color: #007bff;
+        }
+        .status-dropdown {
+            margin-left: 10px;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        .comment-display {
+            font-size: 0.9em;
+            color: #555;
+            margin-top: 10px;
+            padding-left: 10px;
+            border-left: 2px solid #007bff;
+            display: none;
+            word-break: break-word;
+        }
+        .comment-display.show {
+            display: block;
+        }
+        .comment-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-top: 10px;
+            box-sizing: border-box;
+        }
+        .share-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .share-section h2 {
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        .share-info {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            word-break: break-all;
+            text-align: left;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5em;
+            z-index: 10;
+        }
+        .message-box {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 25px;
+            border-radius: 8px;
+            color: white;
+            z-index: 1000;
+            font-weight: bold;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .message-box.show {
+            display: block;
+            opacity: 1;
+        }
+        .message-box.error {
+            background-color: #d9534f;
+        }
+        .message-box.success {
+            background-color: #5cb85c;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Lista de Tarefas</h1>
+        <div id="loadingOverlay" class="loading-overlay" style="display: none;">Carregando...</div>
+        
+        <div class="mode-toggle">
+            <button id="privateModeButton" class="active">Minha Lista Pessoal</button>
+            <button id="sharedModeButton">Lista Compartilhada</button>
+        </div>
+
+        <div id="privateMode" style="display: block;">
+            <h2>Minha Lista Pessoal</h2>
+            <div class="input-area" style="margin-top: 20px;">
+                <input type="text" id="taskInputPrivate" placeholder="Adicione uma nova tarefa...">
+                <button id="addButtonPrivate">Adicionar</button>
+            </div>
+            <ul id="taskListPrivate"></ul>
+        </div>
+
+        <div id="sharedMode" style="display: none;">
+            <div class="share-section">
+                <h2>Compartilhar Lista</h2>
+                <div class="input-area">
+                    <input type="text" id="listIdInput" placeholder="ID da lista para carregar ou criar...">
+                    <button id="loadButton">Carregar/Criar</button>
+                </div>
+                <p><strong>ID da Lista Atual:</strong></p>
+                <div id="currentListId" class="share-info">Nenhuma lista carregada.</div>
+            </div>
+            <div class="input-area" style="margin-top: 20px;">
+                <input type="text" id="taskInputShared" placeholder="Adicione uma nova tarefa...">
+                <button id="addButtonShared">Adicionar</button>
+            </div>
+            <ul id="taskListShared"></ul>
+        </div>
+        
+        <p style="margin-top: 20px;"><strong>Seu ID de Usuário:</strong></p>
+        <div id="currentUserId" class="share-info">Aguardando autenticação...</div>
+    </div>
+    
+    <!-- Novo elemento para exibir mensagens -->
+    <div id="messageBox" class="message-box"></div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Variáveis globais fornecidas pelo ambiente
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth;
+        let userId;
+        let currentListMode = 'private';
+        let currentSharedListId = null;
+        let unsubscribePrivate = null;
+        let unsubscribeShared = null;
+        
+        // Novo estado local para as tarefas
+        let privateTasks = [];
+        let sharedTasks = [];
+
+        const privateModeButton = document.getElementById('privateModeButton');
+        const sharedModeButton = document.getElementById('sharedModeButton');
+        const privateModeSection = document.getElementById('privateMode');
+        const sharedModeSection = document.getElementById('sharedMode');
+
+        const taskInputPrivate = document.getElementById('taskInputPrivate');
+        const addButtonPrivate = document.getElementById('addButtonPrivate');
+        const taskListPrivate = document.getElementById('taskListPrivate');
+
+        const taskInputShared = document.getElementById('taskInputShared');
+        const addButtonShared = document.getElementById('addButtonShared');
+        const taskListShared = document.getElementById('taskListShared');
+        const listIdInput = document.getElementById('listIdInput');
+        const loadButton = document.getElementById('loadButton');
+        const currentListIdDisplay = document.getElementById('currentListId');
+        const currentUserIdDisplay = document.getElementById('currentUserId');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const messageBox = document.getElementById('messageBox');
+
+        let authTimeoutId = null;
+
+        /**
+         * Exibe uma mensagem para o usuário.
+         * @param {string} message - A mensagem a ser exibida.
+         * @param {string} type - O tipo de mensagem ('success' ou 'error').
+         */
+        function showMessage(message, type) {
+            messageBox.textContent = message;
+            messageBox.className = `message-box show ${type}`;
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, 5000);
+        }
+
+        // Inicializa o Firebase e autentica o usuário
+        async function initializeAppAndAuth() {
+            loadingOverlay.style.display = 'flex';
+            
+            // Define um timeout para o carregamento
+            authTimeoutId = setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+                showMessage("Erro de conexão. Tente novamente.", "error");
+            }, 5000); // 5 segundos de timeout
+
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // Autenticação usando token personalizado ou anônima
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                // O ouvinte de autenticação é a fonte única de verdade para o estado do usuário
+                onAuthStateChanged(auth, (user) => {
+                    // Limpa o timeout, pois a autenticação foi resolvida
+                    if (authTimeoutId) {
+                        clearTimeout(authTimeoutId);
+                        authTimeoutId = null;
+                    }
+                    
+                    if (user) {
+                        userId = user.uid;
+                        currentUserIdDisplay.textContent = userId;
+                        loadingOverlay.style.display = 'none';
+                        addButtonPrivate.disabled = false;
+                        loadButton.disabled = false;
+                        console.log("Usuário autenticado:", userId);
+                        // Carrega a lista pessoal do usuário por padrão
+                        loadPrivateList();
+                    } else {
+                        userId = null;
+                        currentUserIdDisplay.textContent = "Não autenticado";
+                        addButtonPrivate.disabled = true;
+                        loadButton.disabled = true;
+                        loadingOverlay.style.display = 'none';
+                        console.log("Usuário desautenticado.");
+                    }
+                });
+
+            } catch (error) {
+                console.error("Erro de inicialização ou autenticação:", error);
+                loadingOverlay.style.display = 'none'; // Garante que o overlay seja ocultado
+                showMessage("Erro de inicialização. Tente recarregar.", "error");
+            }
+        }
+        initializeAppAndAuth();
+
+        // UI Event Listeners
+        privateModeButton.addEventListener('click', () => {
+            if (currentListMode !== 'private') {
+                switchMode('private');
+            }
+        });
+        sharedModeButton.addEventListener('click', () => {
+            if (currentListMode !== 'shared') {
+                switchMode('shared');
+            }
+        });
+
+        loadButton.addEventListener('click', () => {
+            const listId = listIdInput.value.trim();
+            if (listId) {
+                loadSharedList(listId);
+            } else {
+                showMessage('Por favor, insira um ID para carregar ou criar uma lista.', 'error');
+            }
+        });
+
+        addButtonPrivate.addEventListener('click', () => addTask(taskInputPrivate.value, 'private'));
+        taskInputPrivate.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                addTask(taskInputPrivate.value, 'private');
+            }
+        });
+
+        addButtonShared.addEventListener('click', () => {
+            if (currentSharedListId) {
+                addTask(taskInputShared.value, 'shared', currentSharedListId);
+            } else {
+                showMessage('Por favor, carregue ou crie uma lista compartilhada primeiro.', 'error');
+            }
+        });
+        taskInputShared.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                if (currentSharedListId) {
+                    addTask(taskInputShared.value, 'shared', currentSharedListId);
+                }
+            }
+        });
+
+        function switchMode(mode) {
+            currentListMode = mode;
+            if (mode === 'private') {
+                privateModeButton.classList.add('active');
+                sharedModeButton.classList.remove('active');
+                privateModeSection.style.display = 'block';
+                sharedModeSection.style.display = 'none';
+                loadPrivateList();
+            } else {
+                privateModeButton.classList.remove('active');
+                sharedModeButton.classList.add('active');
+                privateModeSection.style.display = 'none';
+                sharedModeSection.style.display = 'block';
+                // O usuário precisa carregar uma lista compartilhada manualmente
+                if (unsubscribePrivate) {
+                    unsubscribePrivate();
+                }
+                taskListShared.innerHTML = '';
+                currentListIdDisplay.textContent = "Nenhuma lista carregada.";
+            }
+        }
+
+        // --- Funções de Dados do Firestore ---
+
+        function loadPrivateList() {
+            // Desconecta qualquer ouvinte de lista compartilhada anterior
+            if (unsubscribeShared) {
+                unsubscribeShared();
+            }
+            if (!userId) { return; }
+            const privateListDocRef = doc(db, `artifacts/${appId}/users/${userId}/privateList`, "myTasks");
+
+            // Usa onSnapshot para escutar em tempo real
+            unsubscribePrivate = onSnapshot(privateListDocRef, (docSnap) => {
+                const listData = docSnap.data();
+                privateTasks = listData?.tasks || [];
+                renderTasks(taskListPrivate, privateTasks);
+            }, (error) => {
+                console.error("Erro ao carregar a lista privada:", error);
+                showMessage("Erro ao carregar sua lista pessoal. Tente novamente.", "error");
+            });
+        }
+
+        function loadSharedList(listId) {
+            // Desconecta qualquer ouvinte de lista privada anterior
+            if (unsubscribePrivate) {
+                unsubscribePrivate();
+            }
+            // Desconecta qualquer ouvinte de lista compartilhada anterior
+            if (unsubscribeShared) {
+                unsubscribeShared();
+            }
+
+            currentSharedListId = listId;
+            currentListIdDisplay.textContent = currentSharedListId;
+            taskListShared.innerHTML = '';
+
+            const sharedListDocRef = doc(db, `artifacts/${appId}/public/data/sharedLists`, currentSharedListId);
+
+            // Usa onSnapshot para escutar em tempo real
+            unsubscribeShared = onSnapshot(sharedListDocRef, (docSnap) => {
+                const listData = docSnap.data();
+                if (!docSnap.exists()) {
+                    console.log("Lista compartilhada não encontrada, criando nova...");
+                    setDoc(sharedListDocRef, { tasks: [] });
+                }
+                sharedTasks = listData?.tasks || [];
+                renderTasks(taskListShared, sharedTasks);
+            }, (error) => {
+                console.error("Erro ao carregar a lista compartilhada:", error);
+                showMessage("Erro ao carregar a lista compartilhada. Tente novamente.", "error");
+            });
+        }
+
+        async function updateTasksInFirestore(tasks, mode, listId) {
+            if (!userId) {
+                console.error("Usuário não autenticado.");
+                showMessage("Você não está autenticado. Tente recarregar o aplicativo.", "error");
+                return;
+            }
+
+            let docRef;
+            if (mode === 'private') {
+                docRef = doc(db, `artifacts/${appId}/users/${userId}/privateList`, "myTasks");
+            } else if (mode === 'shared' && listId) {
+                docRef = doc(db, `artifacts/${appId}/public/data/sharedLists`, listId);
+            } else {
+                console.error("Nenhuma lista válida selecionada para atualizar.");
+                showMessage("Não foi possível salvar a tarefa. Nenhuma lista válida selecionada.", "error");
+                return;
+            }
+            try {
+                await setDoc(docRef, { tasks: tasks }, { merge: false });
+                console.log("Tarefa salva com sucesso.");
+            } catch (error) {
+                console.error("Erro ao salvar as tarefas:", error);
+                showMessage("Erro ao salvar as tarefas. Por favor, tente novamente.", "error");
+            }
+        }
+
+        function addTask(taskText, mode, listId = null) {
+            const trimmedText = taskText.trim();
+            if (trimmedText === '') {
+                return;
+            }
+
+            const newTaskData = {
+                id: Date.now().toString(),
+                text: trimmedText,
+                status: 'Em Andamento',
+                comment: '',
+                ownerId: userId
+            };
+
+            if (mode === 'private') {
+                privateTasks.push(newTaskData);
+                updateTasksInFirestore(privateTasks, mode);
+                taskInputPrivate.value = '';
+            } else if (mode === 'shared' && listId) {
+                sharedTasks.push(newTaskData);
+                updateTasksInFirestore(sharedTasks, mode, listId);
+                taskInputShared.value = '';
+            } else {
+                showMessage('Por favor, carregue ou crie uma lista compartilhada primeiro.', 'error');
+            }
+        }
+
+        function renderTasks(listElement, tasks) {
+            listElement.innerHTML = '';
+            tasks.forEach(taskData => {
+                createTaskElement(listElement, taskData);
+            });
+        }
+        
+        function createTaskElement(listElement, taskData) {
+            const listItem = document.createElement('li');
+            listItem.className = 'task-item';
+            if (taskData.status === 'Finalizada') {
+                listItem.classList.add('finalizada');
+            }
+            // Não usamos mais data-comment e data-taskId, pois o estado é gerenciado no JS
+            listItem.dataset.taskId = taskData.id;
+
+            const contentWrapper = document.createElement('div');
+            contentWrapper.className = 'task-content-wrapper';
+            
+            const taskTextSpan = document.createElement('span');
+            taskTextSpan.className = 'task-text';
+            taskTextSpan.textContent = taskData.text;
+
+            const actionsContainer = document.createElement('div');
+            actionsContainer.className = 'task-actions';
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = '×';
+            deleteButton.className = 'delete-btn';
+            deleteButton.title = 'Deletar Tarefa';
+
+            const commentButton = document.createElement('button');
+            commentButton.textContent = '✏️';
+            commentButton.className = 'comment-btn';
+            commentButton.title = 'Adicionar/Editar Comentário';
+
+            const statusDropdown = document.createElement('select');
+            statusDropdown.className = 'status-dropdown';
+            const statuses = ['Em Andamento', 'Em Revisão', 'Finalizada'];
+            statuses.forEach(status => {
+                const option = document.createElement('option');
+                option.value = status;
+                option.textContent = status;
+                if (status === taskData.status) {
+                    option.selected = true;
+                }
+                statusDropdown.appendChild(option);
+            });
+            
+            const taskInfo = document.createElement('div');
+            taskInfo.className = 'task-info';
+            let infoText = `Criada por: ${taskData.ownerId}`;
+            if (taskData.status === 'Finalizada' && taskData.completedBy) {
+                 infoText += ` | Finalizada por: ${taskData.completedBy}`;
+            }
+            taskInfo.textContent = infoText;
+
+            const commentDisplay = document.createElement('p');
+            commentDisplay.className = 'comment-display';
+            if (taskData.comment) {
+                commentDisplay.textContent = taskData.comment;
+                commentDisplay.classList.add('show');
+            }
+            
+            // Event listener para a mudança de status
+            statusDropdown.addEventListener('change', (event) => {
+                const newStatus = event.target.value;
+                const tasks = currentListMode === 'private' ? privateTasks : sharedTasks;
+                const taskIndex = tasks.findIndex(t => t.id === taskData.id);
+                if (taskIndex !== -1) {
+                    tasks[taskIndex].status = newStatus;
+                    if (newStatus === 'Finalizada') {
+                        tasks[taskIndex].completedBy = userId;
+                    } else {
+                        // Remove a informação de quem finalizou se o status for alterado
+                        delete tasks[taskIndex].completedBy;
+                    }
+                    updateTasksInFirestore(tasks, currentListMode, currentSharedListId);
+                }
+            });
+
+            // Event listener para o botão de deletar
+            deleteButton.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const tasks = currentListMode === 'private' ? privateTasks : sharedTasks;
+                const newTasks = tasks.filter(t => t.id !== taskData.id);
+                updateTasksInFirestore(newTasks, currentListMode, currentSharedListId);
+            });
+
+            // Event listener para o botão de comentário
+            commentButton.addEventListener('click', (event) => {
+                event.stopPropagation();
+                // Previne a criação de múltiplos campos de input
+                if (listItem.querySelector('.comment-input')) {
+                    return;
+                }
+
+                const commentInput = document.createElement('input');
+                commentInput.type = 'text';
+                commentInput.className = 'comment-input';
+                commentInput.placeholder = 'Digite seu comentário...';
+                commentInput.value = taskData.comment || '';
+                listItem.appendChild(commentInput);
+                commentInput.focus();
+
+                commentInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        saveComment(commentInput, commentDisplay, taskData.id);
+                    }
+                });
+
+                commentInput.addEventListener('blur', () => {
+                    saveComment(commentInput, commentDisplay, taskData.id);
+                });
+            });
+
+            actionsContainer.appendChild(statusDropdown);
+            actionsContainer.appendChild(commentButton);
+            actionsContainer.appendChild(deleteButton);
+            
+            contentWrapper.appendChild(taskTextSpan);
+            contentWrapper.appendChild(actionsContainer);
+            
+            listItem.appendChild(contentWrapper);
+            listItem.appendChild(taskInfo);
+            listItem.appendChild(commentDisplay);
+
+            listElement.appendChild(listItem);
+        }
+
+        // Função para salvar o comentário no array de tarefas
+        function saveComment(commentInput, commentDisplay, taskId) {
+            const newComment = commentInput.value.trim();
+            const tasks = currentListMode === 'private' ? privateTasks : sharedTasks;
+            const task = tasks.find(t => t.id === taskId);
+            
+            if (task) {
+                task.comment = newComment;
+                updateTasksInFirestore(tasks, currentListMode, currentSharedListId);
+            }
+            
+            commentDisplay.textContent = newComment;
+            if (newComment) {
+                commentDisplay.classList.add('show');
+            } else {
+                commentDisplay.classList.remove('show');
+            }
+            // Remove o input da tela
+            commentInput.remove();
+        }
+    </script>
+</body>
+</html>

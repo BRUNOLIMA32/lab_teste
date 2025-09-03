@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha Lista de Tarefas</title>
+    <style>
+        /*
+         * CSS styles for the layout and appearance of the checklist.
+         * Estilos CSS para o layout e aparência da lista de verificação.
+         */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            color: #333;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+        h1 {
+            color: #4a4a4a;
+            margin-bottom: 20px;
+        }
+        .input-area {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        #taskInput {
+            flex-grow: 1;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        #taskInput:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        #addButton {
+            padding: 12px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        #addButton:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+        #taskList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            text-align: left;
+        }
+        .task-item {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            transition: background-color 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+        .task-item:hover {
+            background-color: #f2f2f2;
+        }
+        .task-item.completed {
+            background-color: #d4edda;
+            text-decoration: line-through;
+            color: #888;
+        }
+        .task-content-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        .task-text {
+            flex-grow: 1;
+            word-break: break-word;
+        }
+        .task-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .delete-btn, .comment-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: color 0.3s;
+        }
+        .delete-btn {
+            color: #ff4d4d;
+        }
+        .delete-btn:hover {
+            color: #d90000;
+        }
+        .comment-btn {
+            color: #777;
+        }
+        .comment-btn:hover {
+            color: #007bff;
+        }
+        .comment-display {
+            font-size: 0.9em;
+            color: #555;
+            margin-top: 10px;
+            padding-left: 10px;
+            border-left: 2px solid #007bff;
+            display: none;
+            word-break: break-word;
+        }
+        .comment-display.show {
+            display: block;
+        }
+        .comment-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-top: 10px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Lista de Verificação</h1>
+        <div class="input-area">
+            <input type="text" id="taskInput" placeholder="Adicione uma nova tarefa...">
+            <button id="addButton">Adicionar</button>
+        </div>
+        <ul id="taskList">
+            <!-- Tasks will be added here via JavaScript -->
+            <!-- As tarefas serão adicionadas aqui via JavaScript -->
+        </ul>
+    </div>
+
+    <script>
+        /*
+         * JavaScript logic for the checklist functionality.
+         * Lógica JavaScript para a funcionalidade da lista de verificação.
+         */
+
+        // Select the main HTML elements
+        const taskInput = document.getElementById('taskInput');
+        const addButton = document.getElementById('addButton');
+        const taskList = document.getElementById('taskList');
+
+        // Event listener for the "Add" button
+        addButton.addEventListener('click', addTask);
+
+        // Event listener for the "Enter" key in the input field
+        taskInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                addTask();
+            }
+        });
+        
+        // Load tasks from localStorage when the page is loaded
+        document.addEventListener('DOMContentLoaded', loadTasks);
+
+        // Function to save tasks to localStorage
+        function saveTasks() {
+            const tasks = [];
+            document.querySelectorAll('.task-item').forEach(item => {
+                const text = item.querySelector('.task-text').textContent;
+                const completed = item.classList.contains('completed');
+                const comment = item.dataset.comment || '';
+                tasks.push({ text, completed, comment });
+            });
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        // Function to load tasks from localStorage
+        function loadTasks() {
+            const storedTasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+            storedTasks.forEach(taskData => {
+                createTaskElement(taskData);
+            });
+        }
+
+        // Function to create a new task element
+        function createTaskElement(taskData) {
+            // Create a new list item (<li>)
+            const listItem = document.createElement('li');
+            listItem.className = 'task-item';
+            if (taskData.completed) {
+                listItem.classList.add('completed');
+            }
+            listItem.dataset.comment = taskData.comment;
+
+            // Create a wrapper for content and actions
+            const contentWrapper = document.createElement('div');
+            contentWrapper.className = 'task-content-wrapper';
+            
+            // Add the task text
+            const taskSpan = document.createElement('span');
+            taskSpan.className = 'task-text';
+            taskSpan.textContent = taskData.text;
+
+            // Create the actions container
+            const actionsContainer = document.createElement('div');
+            actionsContainer.className = 'task-actions';
+
+            // Create the delete button
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = '×';
+            deleteButton.className = 'delete-btn';
+
+            // Create the comment button
+            const commentButton = document.createElement('button');
+            commentButton.textContent = '✏️'; // Pencil emoji for edit
+            commentButton.className = 'comment-btn';
+            commentButton.title = 'Adicionar/Editar Comentário';
+
+            // Add the comment display element
+            const commentDisplay = document.createElement('p');
+            commentDisplay.className = 'comment-display';
+            if (taskData.comment) {
+                commentDisplay.textContent = taskData.comment;
+                commentDisplay.classList.add('show');
+            }
+
+            // Event listener to toggle completed status
+            taskSpan.addEventListener('click', () => {
+                listItem.classList.toggle('completed');
+                saveTasks();
+            });
+
+            // Event listener for the delete button
+            deleteButton.addEventListener('click', (event) => {
+                event.stopPropagation(); // Prevents the click from propagating to the parent list item
+                taskList.removeChild(listItem);
+                saveTasks();
+            });
+
+            // Event listener for the comment button
+            commentButton.addEventListener('click', (event) => {
+                event.stopPropagation();
+                // Check if an input field already exists
+                if (listItem.querySelector('.comment-input')) {
+                    return; // Do nothing if already in editing mode
+                }
+
+                // Create the comment input field
+                const commentInput = document.createElement('input');
+                commentInput.type = 'text';
+                commentInput.className = 'comment-input';
+                commentInput.placeholder = 'Digite seu comentário...';
+                commentInput.value = listItem.dataset.comment || '';
+                listItem.appendChild(commentInput);
+                commentInput.focus();
+
+                // Save comment on 'Enter' key press
+                commentInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        saveComment(listItem, commentInput, commentDisplay);
+                    }
+                });
+
+                // Save comment on blur (clicking away)
+                commentInput.addEventListener('blur', () => {
+                    saveComment(listItem, commentInput, commentDisplay);
+                });
+            });
+
+            // Append elements to their respective parents
+            actionsContainer.appendChild(commentButton);
+            actionsContainer.appendChild(deleteButton);
+            
+            contentWrapper.appendChild(taskSpan);
+            contentWrapper.appendChild(actionsContainer);
+            
+            listItem.appendChild(contentWrapper);
+            listItem.appendChild(commentDisplay);
+
+            // Append the new item to the task list
+            taskList.appendChild(listItem);
+        }
+
+        // Function to save the comment
+        function saveComment(listItem, commentInput, commentDisplay) {
+            const newComment = commentInput.value.trim();
+            listItem.dataset.comment = newComment;
+            commentDisplay.textContent = newComment;
+            if (newComment) {
+                commentDisplay.classList.add('show');
+            } else {
+                commentDisplay.classList.remove('show');
+            }
+            listItem.removeChild(commentInput);
+            saveTasks();
+        }
+
+        // Function to add a new task
+        function addTask() {
+            const taskText = taskInput.value.trim();
+            if (taskText === '') {
+                return;
+            }
+
+            const newTaskData = {
+                text: taskText,
+                completed: false,
+                comment: ''
+            };
+            createTaskElement(newTaskData);
+            saveTasks();
+            taskInput.value = '';
+        }
+    </script>
+</body>
+</html>

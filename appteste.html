@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SaaS Unificado - Obras</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- jsPDF para gerar PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+  <!-- Spinner de carregamento -->
+  <div id="loading-spinner" class="fixed inset-0 flex items-center justify-center bg-gray-200 bg-opacity-75 z-50 hidden">
+    <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-gray-900"></div>
+  </div>
+
+  <div id="app-container" class="bg-white rounded-lg shadow-xl p-8 max-w-5xl w-full mx-auto my-8 flex-grow">
+
+    <!-- Navbar de navegação -->
+    <nav id="navbar" class="hidden">
+      <div class="flex flex-wrap items-center justify-between p-4 bg-gray-50 rounded-lg shadow-sm mb-6">
+        <h1 class="text-2xl font-bold">Meu SaaS</h1>
+        <div class="flex flex-wrap gap-2">
+          <button class="nav-button bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-600 transition" data-page="home">Home</button>
+          <button class="nav-button bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-600 transition" data-page="products">Produtos</button>
+          <button class="nav-button bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-600 transition" data-page="customers">Clientes</button>
+          <button class="nav-button bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-600 transition" data-page="timesheet">Ponto</button>
+          <button class="nav-button bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-600 transition" data-page="obras">Obras</button>
+          <button id="logout-button" class="bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 transition">Sair</button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Páginas do aplicativo -->
+    <div id="login-page" class="page">
+      <h2 class="text-2xl font-bold mb-4">Login</h2>
+      <form id="login-form" class="space-y-4">
+        <input id="login-email" type="email" placeholder="Email" required class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        <input id="login-password" type="password" placeholder="Senha" required class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+        <button type="submit" class="bg-indigo-500 text-white w-full py-2 rounded-md hover:bg-indigo-600 transition">Entrar</button>
+      </form>
+      <p class="text-sm mt-4 text-center">Não tem conta? 
+        <a href="#" id="go-to-signup" class="text-indigo-600 underline">Cadastre-se</a>
+      </p>
+      <p id="login-status" class="text-red-500 text-sm mt-2 text-center"></p>
+    </div>
+
+    <div id="signup-page" class="page hidden">
+      <h2 class="text-2xl font-bold mb-4">Cadastro</h2>
+      <form id="signup-form" class="space-y-4">
+        <input id="signup-email" type="email" placeholder="Email" required class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" />
+        <input id="signup-password" type="password" placeholder="Senha" required class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" />
+        <button type="submit" class="bg-green-500 text-white w-full py-2 rounded-md hover:bg-green-600 transition">Criar Conta</button>
+      </form>
+      <p class="text-sm mt-4 text-center">Já tem conta?
+        <a href="#" id="go-to-login" class="text-indigo-600 underline">Login</a>
+      </p>
+      <p id="signup-status" class="text-red-500 text-sm mt-2 text-center"></p>
+    </div>
+
+    <div id="home-page" class="page hidden">
+      <h2 class="text-2xl font-bold mb-4">Bem-vindo ao Dashboard</h2>
+      <p>Use a navegação acima para acessar as funcionalidades.</p>
+    </div>
+
+    <div id="products-page" class="page hidden">
+      <h2 class="text-xl font-bold mb-4">Produtos</h2>
+      <form id="product-form" class="space-y-2 mb-4">
+        <input id="product-name" type="text" placeholder="Nome" required class="w-full p-2 border rounded-md" />
+        <input id="product-quantity" type="number" placeholder="Quantidade" required class="w-full p-2 border rounded-md" />
+        <button type="submit" class="bg-indigo-500 text-white w-full py-2 rounded-md hover:bg-indigo-600 transition">Adicionar Produto</button>
+      </form>
+      <table class="w-full border-collapse border rounded-md overflow-hidden">
+        <thead><tr class="bg-gray-200"><th class="p-2 border">Nome</th><th class="p-2 border">Qtd</th><th class="p-2 border">Ações</th></tr></thead>
+        <tbody id="products-table"></tbody>
+      </table>
+    </div>
+
+    <div id="customers-page" class="page hidden">
+      <h2 class="text-xl font-bold mb-4">Clientes</h2>
+      <form id="customer-form" class="space-y-2 mb-4">
+        <input id="customer-name" type="text" placeholder="Nome" required class="w-full p-2 border rounded-md" />
+        <input id="customer-contact" type="text" placeholder="Contato" required class="w-full p-2 border rounded-md" />
+        <button type="submit" class="bg-indigo-500 text-white w-full py-2 rounded-md hover:bg-indigo-600 transition">Adicionar Cliente</button>
+      </form>
+      <table class="w-full border-collapse border rounded-md overflow-hidden">
+        <thead><tr class="bg-gray-200"><th class="p-2 border">Nome</th><th class="p-2 border">Contato</th><th class="p-2 border">Ações</th></tr></thead>
+        <tbody id="customers-table"></tbody>
+      </table>
+    </div>
+
+    <div id="timesheet-page" class="page hidden">
+      <h2 class="text-xl font-bold mb-4">Controle de Ponto</h2>
+      <button id="punch-button" class="bg-green-500 text-white py-2 px-4 rounded-md mb-4 hover:bg-green-600 transition">Bater Ponto</button>
+      <table class="w-full border-collapse border rounded-md overflow-hidden">
+        <thead><tr class="bg-gray-200"><th class="p-2 border">Data</th><th class="p-2 border">Tipo</th></tr></thead>
+        <tbody id="timesheet-table"></tbody>
+      </table>
+    </div>
+
+    <div id="obras-page" class="page hidden">
+      <h2 class="text-xl font-bold mb-4">Obras</h2>
+      <form id="obra-form" class="space-y-2 mb-4">
+        <input id="obra-nome" type="text" placeholder="Nome da Obra" required class="w-full p-2 border rounded-md" />
+        <input id="obra-endereco" type="text" placeholder="Endereço" required class="w-full p-2 border rounded-md" />
+        <input id="obra-cliente" type="text" placeholder="Cliente Responsável" required class="w-full p-2 border rounded-md" />
+        <input id="obra-inicio" type="date" required class="w-full p-2 border rounded-md" />
+        <input id="obra-fim" type="date" class="w-full p-2 border rounded-md" />
+        <button type="submit" class="bg-indigo-500 text-white w-full py-2 rounded-md hover:bg-indigo-600 transition">Cadastrar Obra</button>
+      </form>
+      <div id="obras-list" class="space-y-4"></div>
+    </div>
+  </div>
+
+  <!-- Lógica Firebase e do App -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } 
+      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, deleteDoc, onSnapshot, doc, Timestamp, getDocs } 
+      from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+
+    // Suas credenciais do Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBCcGhd5a2_48eVKcuJV90LDcPeQuCfyyM",
+      authDomain: "appteste-92512.firebaseapp.com",
+      projectId: "appteste-92512",
+      storageBucket: "appteste-92512.appspot.com",
+      messagingSenderId: "691816959257",
+      appId: "1:691816959257:web:2dcc1aa045e6235d470988",
+      measurementId: "G-PRX9HC0GWF"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const spinner = document.getElementById("loading-spinner");
+    const pages = document.querySelectorAll('.page');
+    const navbar = document.getElementById("navbar");
+    
+    // Funções de controle de UI
+    function showSpinner(show) {
+      if (show) {
+        spinner.classList.remove('hidden');
+      } else {
+        spinner.classList.add('hidden');
+      }
+    }
+
+    function showPage(id) {
+      pages.forEach(p => p.classList.add('hidden'));
+      document.getElementById(id + "-page").classList.remove('hidden');
+    }
+
+    // --- Lógica de Autenticação e Navegação ---
+
+    // Event listeners para alternar entre login e cadastro
+    document.getElementById("go-to-signup").addEventListener("click", (e) => {
+      e.preventDefault();
+      showPage("signup");
+    });
+    document.getElementById("go-to-login").addEventListener("click", (e) => {
+      e.preventDefault();
+      showPage("login");
+    });
+    
+    // Login
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      showSpinner(true);
+      const email = document.getElementById("login-email").value;
+      const password = document.getElementById("login-password").value;
+      const loginStatus = document.getElementById("login-status");
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        loginStatus.textContent = "";
+      } catch (err) {
+        loginStatus.textContent = "Erro ao fazer login: " + err.message;
+      } finally {
+        showSpinner(false);
+      }
+    });
+
+    // Cadastro
+    document.getElementById("signup-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      showSpinner(true);
+      const email = document.getElementById("signup-email").value;
+      const password = document.getElementById("signup-password").value;
+      const signupStatus = document.getElementById("signup-status");
+
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        signupStatus.textContent = "";
+      } catch (err) {
+        signupStatus.textContent = "Erro ao cadastrar: " + err.message;
+      } finally {
+        showSpinner(false);
+      }
+    });
+
+    // Logout
+    document.getElementById("logout-button").addEventListener("click", async () => {
+      showSpinner(true);
+      await signOut(auth);
+      showSpinner(false);
+    });
+
+    // Navegação principal da navbar
+    document.querySelectorAll(".nav-button").forEach(btn => {
+      btn.addEventListener("click", () => showPage(btn.dataset.page));
+    });
+
+    // --- Lógica de Carregamento e Gestão de Dados ---
+
+    function loadProducts(uid) {
+      const col = collection(db, "users", uid, "products");
+      onSnapshot(col, (snap) => {
+        const tbody = document.getElementById("products-table");
+        tbody.innerHTML = "";
+        snap.forEach(docSnap => {
+          const p = docSnap.data();
+          tbody.innerHTML += `
+            <tr class="text-center">
+              <td class="p-2 border">${p.name}</td>
+              <td class="p-2 border">${p.quantity}</td>
+              <td class="p-2 border">
+                <button onclick="window.deleteDoc(window.doc(window.db,'users','${uid}','products','${docSnap.id}'))" class="text-red-600 hover:text-red-800 transition">Excluir</button>
+              </td>
+            </tr>`;
+        });
+      });
+    }
+
+    document.getElementById("product-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const uid = auth.currentUser.uid;
+      await addDoc(collection(db, "users", uid, "products"), {
+        name: document.getElementById("product-name").value,
+        quantity: parseInt(document.getElementById("product-quantity").value)
+      });
+      e.target.reset();
+    });
+
+    function loadCustomers(uid) {
+      const col = collection(db, "users", uid, "customers");
+      onSnapshot(col, (snap) => {
+        const tbody = document.getElementById("customers-table");
+        tbody.innerHTML = "";
+        snap.forEach(docSnap => {
+          const c = docSnap.data();
+          tbody.innerHTML += `
+            <tr class="text-center">
+              <td class="p-2 border">${c.name}</td>
+              <td class="p-2 border">${c.contact}</td>
+              <td class="p-2 border">
+                <button onclick="window.deleteDoc(window.doc(window.db,'users','${uid}','customers','${docSnap.id}'))" class="text-red-600 hover:text-red-800 transition">Excluir</button>
+              </td>
+            </tr>`;
+        });
+      });
+    }
+
+    document.getElementById("customer-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const uid = auth.currentUser.uid;
+      await addDoc(collection(db, "users", uid, "customers"), {
+        name: document.getElementById("customer-name").value,
+        contact: document.getElementById("customer-contact").value
+      });
+      e.target.reset();
+    });
+
+    function loadTimesheet(uid) {
+      const col = collection(db, "users", uid, "timesheet");
+      onSnapshot(col, (snap) => {
+        const tbody = document.getElementById("timesheet-table");
+        tbody.innerHTML = "";
+        snap.forEach(docSnap => {
+          const t = docSnap.data();
+          const d = t.timestamp?.toDate().toLocaleString("pt-BR");
+          tbody.innerHTML += `<tr class="text-center"><td class="p-2 border">${d}</td><td class="p-2 border">${t.type}</td></tr>`;
+        });
+      });
+    }
+
+    document.getElementById("punch-button").addEventListener("click", async () => {
+      const uid = auth.currentUser.uid;
+      await addDoc(collection(db, "users", uid, "timesheet"), {
+        timestamp: Timestamp.now(),
+        type: "Entrada/Saída"
+      });
+    });
+
+    function loadObras(uid) {
+      const col = collection(db, "users", uid, "obras");
+      onSnapshot(col, (snap) => {
+        const div = document.getElementById("obras-list");
+        div.innerHTML = "";
+        snap.forEach(docSnap => {
+          const o = docSnap.data();
+          div.innerHTML += `
+            <div class="border p-4 mb-4 rounded-md shadow-sm bg-gray-50">
+              <h3 class="font-bold text-lg mb-1">${o.nome}</h3>
+              <p><strong>Cliente:</strong> ${o.cliente}</p>
+              <p><strong>Endereço:</strong> ${o.endereco}</p>
+              <p><strong>Período:</strong> ${o.inicio} a ${o.fim || 'Não definido'}</p>
+              <button onclick="window.gerarCautela('${uid}','${docSnap.id}','${o.nome}','${o.cliente}')" class="bg-gray-500 text-white px-2 py-1 mt-2 rounded-md hover:bg-gray-600 transition">Gerar Cautela</button>
+              <button onclick="window.deleteDoc(window.doc(window.db, 'users', '${uid}', 'obras', '${docSnap.id}'))" class="bg-red-500 text-white px-2 py-1 mt-2 rounded-md hover:bg-red-600 transition ml-2">Excluir</button>
+            </div>`;
+        });
+      });
+    }
+
+    document.getElementById("obra-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const uid = auth.currentUser.uid;
+      await addDoc(collection(db, "users", uid, "obras"), {
+        nome: document.getElementById("obra-nome").value,
+        endereco: document.getElementById("obra-endereco").value,
+        cliente: document.getElementById("obra-cliente").value,
+        inicio: document.getElementById("obra-inicio").value,
+        fim: document.getElementById("obra-fim").value
+      });
+      e.target.reset();
+    });
+
+    async function gerarCautela(uid, obraId, nomeObra, cliente) {
+      const { jsPDF } = window.jspdf;
+      const docPDF = new jsPDF();
+      
+      showSpinner(true);
+
+      docPDF.setFontSize(16);
+      docPDF.text(`Cautela de Materiais`, 10, 20);
+      docPDF.setFontSize(12);
+      docPDF.text(`Obra: ${nomeObra}`, 10, 30);
+      docPDF.text(`Cliente Responsável: ${cliente}`, 10, 40);
+
+      const materiais = await getDocs(collection(db, "users", uid, "obras", obraId, "materiais"));
+      let y = 60;
+      docPDF.text("Materiais Usados:", 10, 50);
+      
+      materiais.forEach(m => {
+        const d = m.data();
+        docPDF.text(`${d.nome} - ${d.quantidade}`, 10, y);
+        y += 10;
+      });
+
+      docPDF.text("_____________________", 10, y + 20);
+      docPDF.text("Assinatura do Responsável", 10, y + 30);
+
+      docPDF.save(`cautela_${nomeObra}.pdf`);
+      showSpinner(false);
+    }
+    
+    // Deixa as funções deleteDoc e gerarCautela disponíveis no escopo global para o onclick
+    window.deleteDoc = deleteDoc;
+    window.doc = doc;
+    window.db = db;
+    window.gerarCautela = gerarCautela;
+    
+    // Monitora o estado de autenticação do usuário
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        navbar.classList.remove("hidden");
+        showPage("home");
+        // Carrega os dados de todas as páginas
+        loadProducts(user.uid);
+        loadCustomers(user.uid);
+        loadTimesheet(user.uid);
+        loadObras(user.uid);
+      } else {
+        navbar.classList.add("hidden");
+        showPage("login");
+      }
+    });
+
+  </script>
+</body>
+</html>
